@@ -10,7 +10,7 @@ use ratatui::crossterm::terminal::{EnterAlternateScreen, enable_raw_mode};
 use ratatui::crossterm::terminal::{LeaveAlternateScreen, disable_raw_mode};
 use std::io;
 
-pub fn initializeTerminal() -> Result<()> {
+pub fn initializeTerminal(screen: CurrentScreen) -> Result<()> {
     enable_raw_mode()?;
     let mut stderr = io::stderr();
     execute!(stderr, EnterAlternateScreen, EnableMouseCapture)?;
@@ -20,6 +20,12 @@ pub fn initializeTerminal() -> Result<()> {
 
     // create app and run it
     let mut app = App::new();
+    // eprintln!("screen from main = {:?}", screen);
+    app.current_screen = screen;
+    // eprintln!(
+    //     "current screen after initializing = {:?}",
+    //     app.current_screen
+    // );
     let res = run_app(&mut terminal, &mut app);
 
     // restore terminal

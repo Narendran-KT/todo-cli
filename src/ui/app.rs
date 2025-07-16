@@ -1,3 +1,4 @@
+// #[deive(Debug)]
 pub enum CurrentScreen {
     CreateNote,
     ListNotes,

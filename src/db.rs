@@ -1,4 +1,4 @@
-use crate::types;
+use crate::types::Note;
 use chrono::NaiveDateTime;
 use once_cell::sync::Lazy;
 use rusqlite::{Connection, Result, params};
@@ -13,7 +13,7 @@ fn get_db_path() -> std::path::PathBuf {
     let mut path: std::path::PathBuf =
         dirs::data_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
     path.push("notes-cli");
-    println!("Your notes will be saving to {}", path.display());
+    // eprintln!("Your notes will be saving to {}", path.display());
     std::fs::create_dir_all(&path).unwrap();
     path.push("notes.db");
     path
@@ -22,7 +22,7 @@ fn get_db_path() -> std::path::PathBuf {
 pub fn connect_db() -> Result<Connection> {
     let db_path = get_db_path();
     let conn: Connection = Connection::open(db_path)?;
-    println!("Connected to Database");
+    // eprintln!("Connected to Database");
 
     // NOTE: Creating a table using query
     match conn.execute(
@@ -35,16 +35,18 @@ pub fn connect_db() -> Result<Connection> {
         )",
         [],
     ) {
-        Ok(_) => println!("Notes table created"),
+        Ok(_) => {
+            // eprintln!("Notes table created")
+        }
         Err(e) => {
-            println!("Failed to create table : {}", e);
+            // eprintln!("Failed to create table : {}", e);
             std::process::exit(0);
         }
     }
     Ok(conn)
 }
 
-pub fn list_notes() -> Result<Vec<types::Note>> {
+pub fn list_all_notes() -> Result<Vec<Note>> {
     let conn = DB_CONNECTION.lock().unwrap();
     let query = "SELECT * FROM notes";
     let mut query_data = conn.prepare(query)?;
@@ -59,7 +61,7 @@ pub fn list_notes() -> Result<Vec<types::Note>> {
                     Box::new(e),
                 )
             })?;
-        Ok(types::Note {
+        Ok(Note {
             id: row.get(0)?,
             title: row.get(1)?,
             content: row.get(2)?,
@@ -67,7 +69,7 @@ pub fn list_notes() -> Result<Vec<types::Note>> {
         })
     })?;
 
-    let notes = note_iter.collect::<rusqlite::Result<Vec<types::Note>>>()?;
+    let notes: Vec<Note> = note_iter.collect::<rusqlite::Result<Vec<Note>>>()?;
 
     Ok(notes)
 }
@@ -76,7 +78,7 @@ pub fn insert_note(title: &String, content: &String) {
     let conn = DB_CONNECTION.lock().unwrap();
     let query = "INSERT INTO notes (title, content) VALUES (?1, ?2)";
     conn.execute(query, params![title, content]).or_else(|e| {
-        println!("Error : {}", e);
+        eprintln!("Error : {}", e);
         std::process::exit(0);
         Err(e)
     });
@@ -89,7 +91,7 @@ pub fn update_note(title: &String, content: &String, id: &u32) {
 
     conn.execute(query, params![title, content, id])
         .or_else(|e| {
-            println!("Error : {}", e);
+            eprintln!("Error : {}", e);
             std::process::exit(0);
             Err(e)
         });

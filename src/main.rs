@@ -4,9 +4,9 @@ use dialoguer::Select;
 use dirs;
 use std::fmt;
 use std::str::FromStr;
+use todo::types;
 
 // Modules
-mod db;
 mod ui;
 
 enum Choices {

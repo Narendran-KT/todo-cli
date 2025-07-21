@@ -4,7 +4,7 @@ use dialoguer::Select;
 use dirs;
 use std::fmt;
 use std::str::FromStr;
-use todo::types;
+use todo::{db, types};
 
 // Modules
 mod ui;
@@ -45,6 +45,7 @@ fn main() {
     );
 
     let choice_list = vec![Choices::AddNotes, Choices::List, Choices::Exit];
+    // db::dummy_notes_to_test();
     let choice = Select::new()
         .with_prompt("Choose...")
         .items(&choice_list)

@@ -78,7 +78,7 @@ pub fn insert_note(title: &String, content: &String) {
     let conn = DB_CONNECTION.lock().unwrap();
     let query = "INSERT INTO notes (title, content) VALUES (?1, ?2)";
     conn.execute(query, params![title, content]).or_else(|e| {
-        eprintln!("Error : {}", e);
+        // eprintln!("Error : {}", e);
         std::process::exit(0);
         Err(e)
     });
@@ -91,8 +91,36 @@ pub fn update_note(title: &String, content: &String, id: &u32) {
 
     conn.execute(query, params![title, content, id])
         .or_else(|e| {
-            eprintln!("Error : {}", e);
+            // eprintln!("Error : {}", e);
             std::process::exit(0);
             Err(e)
         });
+}
+
+struct Dummy_Notes {
+    title: String,
+    content: String,
+}
+
+pub fn dummy_notes_to_test() {
+    // let mut list: Vec<Dummy_Notes> = Vec::new();
+
+    for i in 0..5 {
+        let note: Dummy_Notes = Dummy_Notes {
+            title: String::from(format!("Note {}", i + 1)),
+            content: String::from(format!("This is note {} content", i + 1)),
+        };
+        // list.push(note);
+
+        insert_note(&note.title, &note.content);
+    }
+
+    // std::thread::sleep(std::time::Duration::from_secs(10));
+    //
+    // let conn = DB_CONNECTION.lock().unwrap();
+    // let query = "DELETE FROM notes";
+    // match conn.execute(query, params![]) {
+    //     Ok(_) => std::process::exit(0),
+    //     Err(_) => std::process::exit(0),
+    // }
 }

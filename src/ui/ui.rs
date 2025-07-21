@@ -4,7 +4,9 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
-    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
+    widgets::{
+        Block, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table, TableState, Wrap,
+    },
 };
 use rusqlite;
 use todo::db::list_all_notes;
@@ -15,7 +17,6 @@ pub fn ui(f: &mut Frame, app: &App) {
     // eprintln!("Debug: current_screen = {:?}", &current_screen);
     match current_screen {
         CurrentScreen::ListNotes => {
-            eprintln!("ListNotes");
             list_notes(f);
         }
         CurrentScreen::CreateNote => {
@@ -64,26 +65,30 @@ fn list_notes(f: &mut Frame) {
             if note_list.is_empty() {
                 render_error(f, chunk[1], String::from("No notes to show!"));
             } else {
-                let note_span_list: Vec<ListItem> = note_list
-                    .iter()
-                    .enumerate()
-                    .map(|(index, note)| {
-                        ListItem::new(Line::from(vec![
-                            Span::raw(format!("{}", index + 1)),
-                            Span::styled(note.title.clone(), Style::default().fg(Color::Blue)),
-                        ]))
-                    })
-                    .collect();
-                let render_list = List::new(note_span_list)
-                    .block(Block::default().borders(Borders::ALL).title("Notes"));
-
-                f.render_widget(render_list, chunk[1]);
+                render_table(f, chunk[1], note_list);
             }
         }
         Err(_) => {
             render_error(f, chunk[1], String::from("Error fetching list!"));
         }
     }
+}
+
+fn list_renderer(note_list: Vec<Note>, f: &mut Frame, area: Rect) {
+    let note_span_list: Vec<ListItem> = note_list
+        .iter()
+        .enumerate()
+        .map(|(index, note)| {
+            ListItem::new(Line::from(vec![
+                Span::raw(format!("{}", index + 1)),
+                Span::styled(note.title.clone(), Style::default().fg(Color::Blue)),
+            ]))
+        })
+        .collect();
+    let render_list =
+        List::new(note_span_list).block(Block::default().borders(Borders::ALL).title("Notes"));
+
+    f.render_widget(render_list, area);
 }
 
 fn render_error(f: &mut Frame, area: Rect, error_msg: String) {
@@ -105,4 +110,30 @@ fn render_error(f: &mut Frame, area: Rect, error_msg: String) {
             .block(Block::default().borders(Borders::ALL).title("Info")),
         area,
     );
+}
+
+fn render_table(f: &mut Frame, area: Rect, list: Vec<Note>) {
+    let rows: Vec<Row> = list
+        .iter()
+        .map(|note| {
+            Row::new(vec![
+                Cell::from(note.id.to_string()),
+                Cell::from(note.title.clone()),
+            ])
+        })
+        .collect();
+
+    let table = Table::new(
+        rows,
+        [Constraint::Percentage(10), Constraint::Percentage(90)],
+    )
+    .header(
+        Row::new(vec!["ID", "Title"])
+            .style(Style::default().bg(Color::LightGreen).fg(Color::Black)),
+    )
+    .block(Block::default().borders(Borders::ALL).title("Notes"))
+    .highlight_style(Style::default().add_modifier(Modifier::REVERSED))
+    .highlight_symbol(">> ");
+
+    f.render_stateful_widget(table, area, &mut TableState::default().with_selected(0));
 }

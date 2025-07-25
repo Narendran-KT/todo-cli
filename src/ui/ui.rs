@@ -2,10 +2,11 @@ use crate::ui::app::{App, CurrentScreen, CurrentlyEditing};
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Color, Modifier, Style, palette::tailwind},
     text::{Line, Span, Text},
     widgets::{
-        Block, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table, TableState, Wrap,
+        Block, BorderType, Borders, Cell, HighlightSpacing, List, ListItem, Paragraph, Row, Table,
+        TableState,
     },
 };
 use rusqlite;
@@ -17,7 +18,7 @@ pub fn ui(f: &mut Frame, app: &App) {
     // eprintln!("Debug: current_screen = {:?}", &current_screen);
     match current_screen {
         CurrentScreen::ListNotes => {
-            list_notes(f);
+            list_notes(f, app);
         }
         CurrentScreen::CreateNote => {
             todo!();
@@ -41,7 +42,7 @@ fn render_title(f: &mut Frame, title: String, title_chunk: Rect) {
     f.render_widget(title, title_chunk);
 }
 
-fn list_notes(f: &mut Frame) {
+fn list_notes(f: &mut Frame, app: &App) {
     // eprintln!("Creating chunk");
     let chunk = Layout::default()
         .direction(Direction::Vertical)
@@ -65,13 +66,15 @@ fn list_notes(f: &mut Frame) {
             if note_list.is_empty() {
                 render_error(f, chunk[1], String::from("No notes to show!"));
             } else {
-                render_table(f, chunk[1], note_list);
+                render_table(f, app, chunk[1], note_list);
             }
         }
         Err(_) => {
             render_error(f, chunk[1], String::from("Error fetching list!"));
         }
     }
+
+    list_notes_footer(f, chunk[2]);
 }
 
 fn list_renderer(note_list: Vec<Note>, f: &mut Frame, area: Rect) {
@@ -112,28 +115,66 @@ fn render_error(f: &mut Frame, area: Rect, error_msg: String) {
     );
 }
 
-fn render_table(f: &mut Frame, area: Rect, list: Vec<Note>) {
+fn render_table(f: &mut Frame, app: &App, area: Rect, list: Vec<Note>) {
     let rows: Vec<Row> = list
         .iter()
-        .map(|note| {
+        .enumerate()
+        .map(|(i, note)| {
+            let color = match i % 2 {
+                0 => tailwind::SLATE.c950,
+                _ => tailwind::SLATE.c900,
+            };
             Row::new(vec![
-                Cell::from(note.id.to_string()),
-                Cell::from(note.title.clone()),
+                Cell::from(Text::from(format!("\n{}\n", note.id.to_string()))),
+                Cell::from(Text::from(format!("\n{}\n", note.title.clone()))),
             ])
+            .style(Style::new().fg(tailwind::SLATE.c200).bg(color))
+            .height(3)
         })
         .collect();
 
+    let bar = " █ ";
     let table = Table::new(
         rows,
         [Constraint::Percentage(10), Constraint::Percentage(90)],
     )
     .header(
-        Row::new(vec!["ID", "Title"])
-            .style(Style::default().bg(Color::LightGreen).fg(Color::Black)),
+        Row::new(vec!["ID", "Title"]).style(
+            Style::default()
+                .bg(tailwind::BLUE.c900)
+                .fg(tailwind::SLATE.c200),
+        ),
     )
     .block(Block::default().borders(Borders::ALL).title("Notes"))
-    .highlight_style(Style::default().add_modifier(Modifier::REVERSED))
-    .highlight_symbol(">> ");
+    .row_highlight_style(
+        Style::default()
+            .fg(tailwind::BLUE.c400)
+            .add_modifier(Modifier::REVERSED),
+    )
+    .highlight_symbol(Text::from(vec!["".into(), bar.into(), "".into()]))
+    .highlight_spacing(HighlightSpacing::Always);
 
-    f.render_stateful_widget(table, area, &mut TableState::default().with_selected(0));
+    f.render_stateful_widget(
+        table,
+        area,
+        &mut TableState::default().with_selected(app.currently_selected),
+    );
+}
+
+fn list_notes_footer(f: &mut Frame, area: Rect) {
+    let info_text = "(Esc) quit | (↑) move up | (↓) move down | (e) edit | (d) delete";
+    let info_footer = Paragraph::new(info_text)
+        .style(
+            Style::new()
+                .fg(tailwind::SLATE.c200)
+                .bg(tailwind::SLATE.c950),
+        )
+        .centered()
+        .block(
+            Block::bordered()
+                .border_type(BorderType::Double)
+                .border_style(Style::new().fg(tailwind::BLUE.c400)),
+        );
+
+    f.render_widget(info_footer, area);
 }

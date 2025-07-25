@@ -57,6 +57,23 @@ pub fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                 // Skip events that are not KeyEventKind::Press
                 continue;
             }
+
+            match app.current_screen {
+                CurrentScreen::ListNotes => match key.code {
+                    KeyCode::Up => app.prev_note_row(),
+                    KeyCode::Down => app.next_note_row(),
+                    _ => {}
+                },
+                CurrentScreen::Exiting => {
+                    todo!()
+                }
+                CurrentScreen::CreateNote => {
+                    todo!()
+                }
+                CurrentScreen::Editing => {
+                    todo!()
+                }
+            }
             // match app.current_screen {
             //     CurrentScreen::Main => match key.code {
             //         KeyCode::Char('e') => {
